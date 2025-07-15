@@ -6,15 +6,31 @@
 
     public unsafe partial class ZMusic
     {
-#if LINUX
-        internal const string LibraryName = "libzmusic.so";
-#else
         internal const string LibraryName = "zmusic.dll";
-#endif
 
-#if !LINUX && !WINDOWS
         private static bool RegisteredResolver;
         private static IntPtr m_dllHandle = IntPtr.Zero;
+        private static string? m_loadedFileName = null;
+
+        private static readonly string RuntimePath =
+             OperatingSystem.IsLinux()
+                 ? Environment.Is64BitProcess
+                     ? "runtimes/linux-x64/native/"
+                     : "runtimes/linux-x86/native/"
+                 : OperatingSystem.IsWindows()
+                     ? Environment.Is64BitProcess
+                         ? "runtimes\\win-x64\\native\\"
+                         : "runtimes\\win-x86\\native\\"
+                     : throw new NotSupportedException("Unsupported OS platform");
+
+        private static readonly string[] LibraryNames =
+            OperatingSystem.IsLinux()
+                ? ["libzmusic.so", "zmusic.so"]
+                : OperatingSystem.IsWindows()
+                    ? ["zmusic.dll", "libzmusic.dll"]
+                    : throw new NotSupportedException("Unsupported OS platform");
+
+        public static string? LoadedFilePath => m_loadedFileName;
 
         static ZMusic()
         {
@@ -31,75 +47,42 @@
             }
         }
 
-        private static string GetRuntimePath()
-        {
-#pragma warning disable IDE0046 // if/else collapsing produces very dense code here
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Is64BitProcess)
-                return "runtimes\\win-x64\\native\\";
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.Is64BitProcess)
-                return "runtimes/linux-x64/native/";
-
-            throw new NotSupportedException("This library does not support the current OS.");
-#pragma warning restore IDE0046
-        }
-
-        private static string[] GetExpectedLibraryNames()
-        {
-#pragma warning disable IDE0046 // if/else collapsing produces very dense code here
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return ["zmusic.dll", "libzmusic.dll"];
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                return ["libzmusic.so", "zmusic.so"];
-
-            throw new NotSupportedException("This library does not support the current OS.");
-#pragma warning restore IDE0046
-        }
-
         private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
-            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-
-            if (libraryName == LibraryName)
+            if (m_dllHandle != IntPtr.Zero)
             {
-                if (m_dllHandle != IntPtr.Zero)
-                {
-                    return m_dllHandle;
-                }
-
-                string runtimePath = GetRuntimePath();
-                string[] libraryNames = GetExpectedLibraryNames();
-
-                foreach (string library in libraryNames)
-                {
-                    // e.g. appdir/libzmusic.so, appdir/zmusic.dll
-                    if (NativeLibrary.TryLoad($"{baseDirectory}{library}", out m_dllHandle))
-                    {
-                        return m_dllHandle;
-                    }
-
-                    // e.g. appdir/runtimes/linux-x64/native/libzmusic.so, appdir/runtimes/win-x64/native/zmusic.dll
-                    if (NativeLibrary.TryLoad($"{baseDirectory}{runtimePath}{library}", out m_dllHandle))
-                    {
-                        return m_dllHandle;
-                    }
-                }
-
-                foreach (string primaryLibrary in libraryNames)
-                {
-                    // default runtime search paths
-                    if (NativeLibrary.TryLoad(primaryLibrary, out m_dllHandle))
-                    {
-                        return m_dllHandle;
-                    }
-                }
-
-                throw new DllNotFoundException($"Could not load a suitable substitute for DllImport {libraryName}.");
+                // already loaded
+                return m_dllHandle;
             }
 
-            return IntPtr.Zero;
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            // Try appdir/filename, then appdir/runtimes/<platform>/filename, then LD_LIBRARY_PATH (Linux only), then "default behavior".
+            return TryLoadFromPath(baseDirectory, out m_dllHandle, out m_loadedFileName)
+                || TryLoadFromPath($"{baseDirectory}{RuntimePath}", out m_dllHandle, out m_loadedFileName)
+                || (OperatingSystem.IsLinux()
+                    && TryLoadFromPath(Environment.GetEnvironmentVariable("LD_LIBRARY_PATH"), out m_dllHandle, out m_loadedFileName))
+                || TryLoadFromPath(null, out m_dllHandle, out m_loadedFileName)
+                ? m_dllHandle
+                : throw new DllNotFoundException($"Could not load a suitable substitute for DllImport {libraryName}.");
         }
-#endif
+
+        private static bool TryLoadFromPath(string? basePath, out IntPtr foundPtr, out string? foundPath)
+        {
+            foundPath = null;
+            foundPtr = IntPtr.Zero;
+
+            foreach (string library in LibraryNames)
+            {
+                string path = $"{basePath}{library}";
+                if (NativeLibrary.TryLoad(path, out foundPtr))
+                {
+                    foundPath = path;
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }
