@@ -1,6 +1,6 @@
 ﻿namespace ZMusicWrapper;
 
-using global::ZMusicWrapper.Generated;
+using ZMusicWrapper.Generated;
 using System;
 using System.IO;
 using System.Text;
@@ -15,8 +15,10 @@ public class ZMusicPlayer : IDisposable
     private const int DefaultSampleRate_OPL = 49_716; // source: https://en.wikipedia.org/wiki/Yamaha_OPL
     private const int DefaultChannels = 2;
 
+    private static readonly byte[] EmptyByteString = Encoding.UTF8.GetBytes("\0");
+
+    private readonly IOutputStreamFactory m_streamFactory;
     private EMidiDevice_ m_midiDevice;
-    private IOutputStreamFactory m_streamFactory;
     private bool m_patchesLoaded;
     private bool m_soundFontLoaded;
     private float m_sourceVolume;
@@ -31,6 +33,7 @@ public class ZMusicPlayer : IDisposable
     private float[]? m_floatSampleData;
     private int m_channels;
     private int m_samplerate;
+    private FluidMidiOptions m_fluidMidiOptions;
 
     private bool m_disposed;
 
@@ -64,7 +67,6 @@ public class ZMusicPlayer : IDisposable
                 : EMidiDevice_.MDEV_FLUIDSYNTH;
         }
     }
-
 
     /// <summary>
     /// Stop playback on the current output stream and discard it.
@@ -106,11 +108,13 @@ public class ZMusicPlayer : IDisposable
     /// <param name="soundFontPath">Path to a SoundFont (.sf2, .sf3) file for use when playing MIDI</param>
     /// <param name="oplPatchSet">Patches to use for emulated OPL playback</param>
     /// <param name="sourceVolume">Initial volume for this source</param>
-    public ZMusicPlayer(IOutputStreamFactory outputStreamFactory, MidiDevice preferredDevice, string soundFontPath, byte[]? oplPatchSet, float sourceVolume = 1.0f)
+    public ZMusicPlayer(IOutputStreamFactory outputStreamFactory, MidiDevice preferredDevice, string soundFontPath, byte[]? oplPatchSet, float sourceVolume = 1.0f,
+        FluidMidiOptions fluidMidiOptions = FluidMidiOptions.Chorus | FluidMidiOptions.Reverb)
     {
         m_streamFactory = outputStreamFactory;
         m_soundFontPath = soundFontPath;
         m_sourceVolume = sourceVolume;
+        m_fluidMidiOptions = fluidMidiOptions;
 
         if (preferredDevice == MidiDevice.OPL3 && oplPatchSet != null)
         {
@@ -121,6 +125,11 @@ public class ZMusicPlayer : IDisposable
         {
             m_midiDevice = EMidiDevice_.MDEV_FLUIDSYNTH;
         }
+    }
+
+    public void SetFluidMidiOptions(FluidMidiOptions options)
+    {
+        m_fluidMidiOptions = options;
     }
 
     /// <summary>
@@ -228,7 +237,14 @@ public class ZMusicPlayer : IDisposable
                 }
                 else
                 {
-                    if (!m_soundFontLoaded)
+                    ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_chorus, song, (int)(m_fluidMidiOptions & FluidMidiOptions.Chorus), null);
+                    ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_reverb, song, (int)(m_fluidMidiOptions & FluidMidiOptions.Reverb), null);
+
+                    // Don't give ZMusic the sound font path if it's already loaded.
+                    // This causes it to unnecessarily call fluid_synth_sfload which can add a long delay on large sound fonts.
+                    if (m_soundFontLoaded)
+                        SetEmptySoundFont(song);
+                    else
                         SetSoundFont(song, m_soundFontPath);
 
                     PlayStream(DefaultSampleRate, DefaultChannels, loop);
@@ -276,13 +292,19 @@ public class ZMusicPlayer : IDisposable
             throw new FileNotFoundException("Invalid SoundFont file path");
         }
 
-        byte[] fluidSynthPathBytes = Encoding.UTF8.GetBytes(soundFontPath);
+        var fluidSynthPathBytes = Encoding.UTF8.GetBytes(soundFontPath + '\0');
         fixed (byte* path = fluidSynthPathBytes)
         {
             ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_samplerate, song, DefaultSampleRate, null);
             ZMusic.ChangeMusicSetting(EStringConfigKey_.zmusic_fluid_patchset, song, (sbyte*)path);
             m_soundFontLoaded = true;
         }
+    }
+
+    private unsafe void SetEmptySoundFont(_ZMusic_MusicStream_Struct* song)
+    {
+        fixed (byte* path = EmptyByteString)
+            ZMusic.ChangeMusicSetting(EStringConfigKey_.zmusic_fluid_patchset, song, (sbyte*)path);
     }
 
     private unsafe void PlayStream(int sampleRate, int channels, bool loop)
