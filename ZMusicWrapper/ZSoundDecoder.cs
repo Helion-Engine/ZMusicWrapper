@@ -25,6 +25,10 @@ public unsafe class ZSoundDecoder : IDisposable
         SampleType_ sampleType;
         fixed (byte* ptr = data)
             m_soundDecoder = ZMusic.CreateDecoder(ptr, (nuint)data.Length, 1);
+
+        if (m_soundDecoder == null)
+            return;
+
         ZMusic.SoundDecoder_GetInfo(m_soundDecoder, &sampleRate, &channelConfig, &sampleType);
         SampleRate = sampleRate;
         Stereo = channelConfig == ChannelConfig_.ChannelConfig_Stereo;
