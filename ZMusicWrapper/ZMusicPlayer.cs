@@ -15,12 +15,9 @@ public class ZMusicPlayer : IDisposable
     private const int DefaultSampleRate_OPL = 49_716; // source: https://en.wikipedia.org/wiki/Yamaha_OPL
     private const int DefaultChannels = 2;
 
-    private static readonly byte[] EmptyByteString = Encoding.UTF8.GetBytes("\0");
-
     private readonly IOutputStreamFactory m_streamFactory;
     private EMidiDevice_ m_midiDevice;
     private bool m_patchesLoaded;
-    private bool m_soundFontLoaded;
     private float m_sourceVolume;
     private string m_soundFontPath;
 
@@ -240,12 +237,7 @@ public class ZMusicPlayer : IDisposable
                     ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_chorus, song, (int)(m_fluidMidiOptions & FluidMidiOptions.Chorus), null);
                     ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_reverb, song, (int)(m_fluidMidiOptions & FluidMidiOptions.Reverb), null);
 
-                    // Don't give ZMusic the sound font path if it's already loaded.
-                    // This causes it to unnecessarily call fluid_synth_sfload which can add a long delay on large sound fonts.
-                    if (m_soundFontLoaded)
-                        SetEmptySoundFont(song);
-                    else
-                        SetSoundFont(song, m_soundFontPath);
+                    SetSoundFont(song, m_soundFontPath);
 
                     PlayStream(DefaultSampleRate, DefaultChannels, loop);
                 }
@@ -269,19 +261,13 @@ public class ZMusicPlayer : IDisposable
             return;
 
         m_soundFontPath = newPath;
-        m_soundFontLoaded = false;
 
         if (IsPlaying)
         {
             _ZMusic_MusicStream_Struct* song = (_ZMusic_MusicStream_Struct*)m_zMusicSong;
 
             SetSoundFont(song, m_soundFontPath);
-            m_playStartTask = new(() =>
-            {
-                ZMusic.ZMusic_Stop(song);
-                ZMusic.ZMusic_Start(song, 0, Convert.ToByte(m_loop));
-            });
-            m_playStartTask.Start();
+            ZMusic.ZMusic_Stop(song);
         }
     }
 
@@ -297,14 +283,7 @@ public class ZMusicPlayer : IDisposable
         {
             ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_samplerate, song, DefaultSampleRate, null);
             ZMusic.ChangeMusicSetting(EStringConfigKey_.zmusic_fluid_patchset, song, (sbyte*)path);
-            m_soundFontLoaded = true;
         }
-    }
-
-    private unsafe void SetEmptySoundFont(_ZMusic_MusicStream_Struct* song)
-    {
-        fixed (byte* path = EmptyByteString)
-            ZMusic.ChangeMusicSetting(EStringConfigKey_.zmusic_fluid_patchset, song, (sbyte*)path);
     }
 
     private unsafe void PlayStream(int sampleRate, int channels, bool loop)
