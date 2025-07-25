@@ -124,9 +124,20 @@ public class ZMusicPlayer : IDisposable
         }
     }
 
-    public void SetFluidMidiOptions(FluidMidiOptions options)
+    public unsafe void SetFluidMidiOptions(FluidMidiOptions options)
     {
+        if (m_fluidMidiOptions == options)
+        {
+            return; // no change
+        }
+
         m_fluidMidiOptions = options;
+
+        if (m_activeStream != null && m_zMusicSong != IntPtr.Zero)
+        {
+            ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_chorus, (_ZMusic_MusicStream_Struct*)m_zMusicSong, (m_fluidMidiOptions & FluidMidiOptions.Chorus) == FluidMidiOptions.Chorus ? 1 : 0, null);
+            ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_reverb, (_ZMusic_MusicStream_Struct*)m_zMusicSong, (m_fluidMidiOptions & FluidMidiOptions.Reverb) == FluidMidiOptions.Reverb ? 1 : 0, null);
+        }
     }
 
     /// <summary>
@@ -234,11 +245,9 @@ public class ZMusicPlayer : IDisposable
                 }
                 else
                 {
+                    SetSoundFont(song, m_soundFontPath);
                     ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_chorus, song, (m_fluidMidiOptions & FluidMidiOptions.Chorus) == FluidMidiOptions.Chorus ? 1 : 0, null);
                     ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_reverb, song, (m_fluidMidiOptions & FluidMidiOptions.Reverb) == FluidMidiOptions.Reverb ? 1 : 0, null);
-
-                    SetSoundFont(song, m_soundFontPath);
-
                     PlayStream(DefaultSampleRate, DefaultChannels, loop);
                 }
             }
