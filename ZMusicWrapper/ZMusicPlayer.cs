@@ -234,8 +234,8 @@ public class ZMusicPlayer : IDisposable
                 }
                 else
                 {
-                    ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_chorus, song, (int)(m_fluidMidiOptions & FluidMidiOptions.Chorus), null);
-                    ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_reverb, song, (int)(m_fluidMidiOptions & FluidMidiOptions.Reverb), null);
+                    ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_chorus, song, (m_fluidMidiOptions & FluidMidiOptions.Chorus) == FluidMidiOptions.Chorus ? 1 : 0, null);
+                    ZMusic.ChangeMusicSettingInt(EIntConfigKey_.zmusic_fluid_reverb, song, (m_fluidMidiOptions & FluidMidiOptions.Reverb) == FluidMidiOptions.Reverb ? 1 : 0, null);
 
                     SetSoundFont(song, m_soundFontPath);
 
