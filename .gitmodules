@@ -1,0 +1,3 @@
+[submodule "ZMusic"]
+	path = ZMusic
+	url = https://github.com/Helion-Engine/ZMusic
