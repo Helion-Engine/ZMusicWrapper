@@ -62,7 +62,7 @@ jobs:
          cp ${{ matrix.libfiles }} build_native/${{ matrix.rid }}
       - name: Strip Symbols (linux)
         if: runner.os == 'Linux'
-        run: strip build_native/*.so
+        run: strip build_native/linux-x64/*.so
         shell: bash
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
