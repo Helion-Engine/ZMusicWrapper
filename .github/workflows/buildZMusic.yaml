@@ -60,6 +60,9 @@ jobs:
          mkdir -p build_native/${{ matrix.rid }}
          cp ${{ matrix.linkerfiles }} build_native/${{ matrix.rid }}
          cp ${{ matrix.libfiles }} build_native/${{ matrix.rid }}
+      - name: Strip Symbols (linux)
+        if: runner.os == 'Linux'
+        run: strip build_native/*.so
         shell: bash
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
