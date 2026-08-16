@@ -36,6 +36,15 @@ jobs:
             cmakeargscommon: -DMPG123_INCLUDE_DIR:PATH="D:/a/ZMusicWrapper/ZMusicWrapper/vcpkg/installed/x64-windows-static/include" -DSNDFILE_LIBRARY:FILEPATH="D:/a/ZMusicWrapper/ZMusicWrapper/vcpkg/installed/x64-windows-static/lib/sndfile.lib" -DMPG123_LIBRARY:FILEPATH="D:/a/ZMusicWrapper/ZMusicWrapper/vcpkg/installed/x64-windows-static/lib/mpg123.lib" -DSNDFILE_INCLUDE_DIR:PATH="D:/a/ZMusicWrapper/ZMusicWrapper/vcpkg/installed/x64-windows-static/include" -DCMAKE_SHARED_LINKER_FLAGS:STRING="/machine:x64 /LIBPATH:D:/a/ZMusicWrapper/ZMusicWrapper/deps" -DCMAKE_CXX_STANDARD_LIBRARIES:STRING="kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib FLAC.lib FLAC++.lib libmp3lame-static.lib libmpghip-static.lib ogg.lib opus.lib out123.lib syn123.lib vorbis.lib shlwapi.lib" -DDYN_SNDFILE:BOOL="0" -DDYN_MPG123:BOOL="0" 
             linkerfiles: ZMusic/build/source/Release/zmusic.lib deps/*.lib
             libfiles: ZMusic/build/source/Release/zmusic.dll
+          - os: macos-latest
+            rid: osx-x64
+            prereqs: |
+              brew install libsndfile mpg123
+            cmakeargsdynamic: -B build
+            cmakeargsstatic: -B build -DLIBTYPE=STATIC -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DBUILD_SHARED_LIBS=OFF
+            cmakeargscommon: -DDYN_SNDFILE:BOOL="0" -DDYN_MPG123:BOOL="0"
+            linkerfiles: ZMusic/build/source/libzmusic.a
+            libfiles: ZMusic/build/source/libzmusic.dylib
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
