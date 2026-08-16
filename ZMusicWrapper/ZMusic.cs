@@ -21,14 +21,20 @@
                      ? Environment.Is64BitProcess
                          ? "runtimes\\win-x64\\native\\"
                          : "runtimes\\win-x86\\native\\"
-                     : throw new NotSupportedException("Unsupported OS platform");
+                     : OperatingSystem.IsMacOS()
+                        ? Environment.Is64BitProcess
+                            ? "runtimes\\osx-arm64\\native\\"
+                            : "runtimes\\osx-arm64\\native\\"
+                        : throw new NotSupportedException("Unsupported OS platform");
 
         private static readonly string[] LibraryNames =
             OperatingSystem.IsLinux()
                 ? ["libzmusic.so", "zmusic.so"]
                 : OperatingSystem.IsWindows()
                     ? ["zmusic.dll", "libzmusic.dll"]
-                    : throw new NotSupportedException("Unsupported OS platform");
+                    : OperatingSystem.IsMacOS()
+                        ? ["zmusic.dylib", "libzmusic.dylib"] 
+                        : throw new NotSupportedException("Unsupported OS platform");
 
         public static string? LoadedFilePath => m_loadedFileName;
 
