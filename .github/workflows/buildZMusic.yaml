@@ -37,7 +37,7 @@ jobs:
             linkerfiles: ZMusic/build/source/Release/zmusic.lib deps/*.lib
             libfiles: ZMusic/build/source/Release/zmusic.dll
           - os: macos-latest
-            rid: osx-x64
+            rid: osx-arm64
             prereqs: |
               brew install libsndfile mpg123
             cmakeargsdynamic: -B build
