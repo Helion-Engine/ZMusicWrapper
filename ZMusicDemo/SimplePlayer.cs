@@ -27,7 +27,7 @@
                 : new FileInfo(SOUNDFONT).FullName;
 
             Console.WriteLine($"Initializing ZMusic Player using SoundFont: {fullPath}");
-            using (ZMusicPlayer player = new ZMusicPlayer(new AudioStreamFactory(), MidiDevice.FluidSynth, "Default.sf2", null))
+            using (ZMusicPlayer player = new ZMusicPlayer(new AudioStreamFactory(), MidiDevice.FluidSynth, SOUNDFONT, null))
             {
                 while (fileQueue.TryDequeue(out string? fileName))
                 {
