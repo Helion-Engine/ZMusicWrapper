@@ -9,8 +9,11 @@
 
     internal static class SimplePlayer
     {
+        private const string SOUNDFONT = "Default.sf2";
+
         public static unsafe void Play(string[] fileNames)
         {
+            Console.WriteLine("Creating OpenAL audio context");
             ALDevice device = ALC.OpenDevice(null);
             ALContext context = ALC.CreateContext(device, (int*)null);
             _ = ALC.MakeContextCurrent(context);
@@ -19,6 +22,11 @@
             Queue<string> fileQueue = new(fileNames);
             byte[]? genMidiLumpBytes = null;
 
+            string fullPath = Path.IsPathRooted(SOUNDFONT) 
+                ? SOUNDFONT
+                : new FileInfo(SOUNDFONT).FullName;
+
+            Console.WriteLine($"Initializing ZMusic Player using SoundFont: {fullPath}");
             using (ZMusicPlayer player = new ZMusicPlayer(new AudioStreamFactory(), MidiDevice.FluidSynth, "Default.sf2", null))
             {
                 while (fileQueue.TryDequeue(out string? fileName))
