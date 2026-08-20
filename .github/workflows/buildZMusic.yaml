@@ -39,7 +39,7 @@ jobs:
           - os: macos-latest
             rid: osx-arm64
             prereqs: |
-              brew install libsndfile mpg123
+              brew install libsndfile mpg123 dylibbundler
             cmakeargsdynamic: -B build
             cmakeargsstatic: -B build -DLIBTYPE=STATIC -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DBUILD_SHARED_LIBS=OFF
             cmakeargscommon: -DDYN_SNDFILE:BOOL="0" -DDYN_MPG123:BOOL="0"
@@ -71,8 +71,12 @@ jobs:
          cp ${{ matrix.libfiles }} build_native/${{ matrix.rid }}
         shell: bash
       - name: Strip Symbols (linux)
-        if: runner.os == 'Linux'
+        if: ${{ matrix.rid == 'linux-x64' }}
         run: strip build_native/linux-x64/*.so
+      - name: Bundle Dependencies (MacOS)
+        if: ${{ matrix.rid == 'osx-arm64' }}
+        run: dylibbundler -b -x libzmusic.dylib -d . -p .
+        working-directory: build-native/osx-arm64
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
