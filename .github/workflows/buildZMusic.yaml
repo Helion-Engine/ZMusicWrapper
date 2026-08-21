@@ -75,7 +75,7 @@ jobs:
         run: strip build_native/linux-x64/*.so
       - name: Bundle Dependencies (MacOS)
         if: ${{ matrix.rid == 'osx-arm64' }}
-        run: dylibbundler -b -x libzmusic.dylib -d . -p .
+        run: dylibbundler -b -x libzmusic.dylib -d . -p @loader_path
         working-directory: build_native/osx-arm64
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
