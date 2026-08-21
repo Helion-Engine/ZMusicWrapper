@@ -20,13 +20,13 @@
             ALDevice device = ALC.OpenDevice(null);
             ALContext context = ALC.CreateContext(device, (int*)null);
 
+            _ = ALC.MakeContextCurrent(context);
+            _ = AL.GetError();
+
             Console.WriteLine($"OpenAL v{AL.Get(ALGetString.Version)}");
             Console.WriteLine($"OpenAL Vendor: {AL.Get(ALGetString.Vendor)}");
             Console.WriteLine($"OpenAL Renderer: {AL.Get(ALGetString.Renderer)}");
             Console.WriteLine($"OpenAL Extensions: {AL.Get(ALGetString.Extensions)}");
-
-            _ = ALC.MakeContextCurrent(context);
-            _ = AL.GetError();
 
             Queue<string> fileQueue = new(fileNames);
             byte[]? genMidiLumpBytes = null;
