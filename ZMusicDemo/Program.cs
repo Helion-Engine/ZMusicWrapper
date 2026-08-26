@@ -18,6 +18,7 @@
 
             if (OperatingSystem.IsMacOS())
             {
+                #if !AOT
                 // There are two possible search paths depending on whether we are in a non runtime-specific build or not.
                 string noRuntimePath = Path.Combine(AppContext.BaseDirectory, "libopenal.dylib");
                 string runtimePath = Path.Combine(AppContext.BaseDirectory, "runtimes/osx-arm64/native/libopenal.dylib");
@@ -34,6 +35,7 @@
                 {
                     throw new InvalidOperationException("Cannot find OpenAL-Soft");
                 }
+                #endif
             }
 
             Console.WriteLine($"Asking OpenTK to use OpenAL library: {OpenALLibraryNameContainer.OverridePath}");
