@@ -15,23 +15,24 @@
   </ItemGroup>
 
   <PropertyGroup Condition="'$(AOT)' == 'true'">
+    <!-- Apply some reasonable defaults if someone chooses to do an AOT publish -->
     <PublishAot>true</PublishAot>
     <OptimizationPreference>Speed</OptimizationPreference>
     <!-- See https://github.com/dotnet/runtime/blob/main/src/coreclr/nativeaot/docs/optimizing.md for instruction set info -->
     <!-- x86-x64-v3: Haswell and newer (~2013) with FMA and AVX2.  x86-64-v4: AVX-512 required. -->
     <!--<IlcInstructionSet>x86-x64-v3</IlcInstructionSet>-->
 
-    <!-- Avoid copying symbols for release AOT builds, as these are miserable to debug even with symbols (and the files are huge) -->
+    <!-- Avoid copying symbols for release builds (especially in AOT, where they are huge and very unpleasant to debug with anyway) -->
     <CopyOutputSymbolsToPublishDirectory Condition="'$(Configuration)'=='Release'">false</CopyOutputSymbolsToPublishDirectory>
     <AllowedReferenceRelatedFileExtensions Condition="'$(Configuration)'=='Release'">none</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(AOT)' == 'true'">
+  <ItemGroup Condition="'$(PublishAot)' == 'true'">
     <DirectPInvoke Include="zmusic.dll" />
     <DirectPInvoke Include="AL" />
   </ItemGroup>
 
-  <ItemGroup Condition="('$(AOT)' == 'true') AND ('$(RuntimeIdentifier)'=='win-x64')">
+  <ItemGroup Condition="('$(PublishAot)' == 'true') AND ('$(RuntimeIdentifier)'=='win-x64')">
     <!-- These are all .libs that would normally get included if we were building DLLs from one or more of our native deps using CMake;
     All of these come from the Windows SDK, e.g. C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0\um\x64 -->
     <LinkerArg Include="Gdi32.lib" />
@@ -46,7 +47,7 @@
     <LinkerArg Include="Setupapi.lib" />
   </ItemGroup>
 
-  <ItemGroup Condition="('$(AOT)' == 'true') AND ('$(RuntimeIdentifier)'=='linux-x64')">
+  <ItemGroup Condition="('$(PublishAot)' == 'true') AND ('$(RuntimeIdentifier)'=='linux-x64')">
     <LinkerArg Include="-lstdc++" />
     <LinkerArg Include="-lsndfile" />
     <LinkerArg Include="-lmpg123" />
@@ -54,12 +55,12 @@
     <LinkerArg Include="-lglib-2.0" />
   </ItemGroup>
 
-  <ItemGroup Condition="('$(AOT)' == 'true') AND ('$(RuntimeIdentifier)'=='osx-arm64')">
+  <ItemGroup Condition="('$(PublishAot)' == 'true') AND ('$(RuntimeIdentifier)'=='osx-arm64')">
     <!-- TO-DO: Native linking for MacOS AARCH64 -->
   </ItemGroup>
 
   <Target Name="HandleNativeLibraries" BeforeTargets="ResolveLockFileCopyLocalFiles">
-    <ItemGroup Condition="('$(AOT)' == 'true')">
+    <ItemGroup Condition="('$(PublishAot)' == 'true')">
       <NativeLibrary Include="@(NativeCopyLocalItems)" Condition="('%(Extension)'=='.lib') AND ('$(RuntimeIdentifier)'=='win-x64')" />
       <NativeLibrary Include="@(NativeCopyLocalItems)" Condition="('%(Extension)'=='.a') AND ('$(RuntimeIdentifier)'=='linux-x64')" />
       <NativeLibrary Include="@(NativeCopyLocalItems)" Condition="('%(Extension)'=='.a') AND ('$(RuntimeIdentifier)'=='osx-arm64')" />
