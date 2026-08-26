@@ -14,10 +14,19 @@
         public static unsafe void Play(string[] fileNames)
         {
             Console.WriteLine("Creating OpenAL audio context");
+            IEnumerable<string> devices = ALC.GetStringList(GetEnumerationStringList.DeviceSpecifier);
+            Console.WriteLine($"Available devices: {string.Join(", ", devices)}");
+
             ALDevice device = ALC.OpenDevice(null);
             ALContext context = ALC.CreateContext(device, (int*)null);
+
             _ = ALC.MakeContextCurrent(context);
             _ = AL.GetError();
+
+            Console.WriteLine($"OpenAL v{AL.Get(ALGetString.Version)}");
+            Console.WriteLine($"OpenAL Vendor: {AL.Get(ALGetString.Vendor)}");
+            Console.WriteLine($"OpenAL Renderer: {AL.Get(ALGetString.Renderer)}");
+            Console.WriteLine($"OpenAL Extensions: {AL.Get(ALGetString.Extensions)}");
 
             Queue<string> fileQueue = new(fileNames);
             byte[]? genMidiLumpBytes = null;
